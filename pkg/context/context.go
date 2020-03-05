@@ -8,6 +8,7 @@ package context
 
 import (
 	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/trustbloc/sidetree-core-go/pkg/api/protocol"
 	"github.com/trustbloc/sidetree-core-go/pkg/batch"
 	"github.com/trustbloc/sidetree-core-go/pkg/batch/cutter"
@@ -19,14 +20,14 @@ import (
 	servermocks "github.com/trustbloc/sidetree-mock/pkg/mocks"
 )
 
-func New(cfg *viper.Viper) (*ServerContext, error) { // nolint
+func New(cfg *viper.Viper, storage *leveldb.DB) (*ServerContext, error) { // nolint
 
 	opsStore := mocks.NewMockOperationStore(nil)
-	cas := servermocks.NewMockCasClient(nil)
+	store := servermocks.NewMockLevelDBClient(storage)
 
 	ctx := &ServerContext{
 		ProtocolClient:       servermocks.NewMockProtocolClient(),
-		CasClient:            cas,
+		StoreClient:          store,
 		BlockchainClient:     mocks.NewMockBlockchainClient(nil),
 		OperationStoreClient: opsStore,
 		OpQueue:              &opqueue.MemQueue{},
@@ -39,7 +40,7 @@ func New(cfg *viper.Viper) (*ServerContext, error) { // nolint
 // ServerContext implements batch context
 type ServerContext struct {
 	ProtocolClient       *servermocks.MockProtocolClient
-	CasClient            *servermocks.MockCasClient
+	StoreClient          *servermocks.MockLevelDBClient
 	BlockchainClient     *mocks.MockBlockchainClient
 	OperationStoreClient *mocks.MockOperationStore
 	OpQueue              *opqueue.MemQueue
@@ -57,7 +58,7 @@ func (m *ServerContext) Blockchain() batch.BlockchainClient {
 
 // CAS returns the CAS client
 func (m *ServerContext) CAS() batch.CASClient {
-	return m.CasClient
+	return m.StoreClient
 }
 
 // OperationStore returns the OperationStore client

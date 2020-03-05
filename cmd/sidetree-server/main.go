@@ -9,6 +9,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"os/signal"
 	"strings"
@@ -39,7 +40,13 @@ func main() {
 
 	logger.Info("starting sidetree node...")
 
-	ctx, err := sidetreecontext.New(config)
+	storage, err := newLeveldbStore()
+	if err != nil {
+		logger.Errorf("Failed to create new database: %s", err.Error())
+		panic(err)
+	}
+
+	ctx, err := sidetreecontext.New(config, storage)
 	if err != nil {
 		logger.Errorf("Failed to create new context: %s", err.Error())
 		panic(err)
@@ -101,4 +108,17 @@ func getListenURL() string {
 		panic("port is not set")
 	}
 	return fmt.Sprintf("%s:%d", host, port)
+}
+
+func newLeveldbStore() (*leveldb.DB, error) {
+	dbPath := config.GetString("dbpath")
+	if dbPath == "" {
+		panic("database path is not set")
+	}
+	db, err := leveldb.OpenFile(dbPath, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
