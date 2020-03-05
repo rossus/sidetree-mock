@@ -93,7 +93,11 @@ func main() {
 	// Shut down all services
 	batchWriter.Stop()
 
-	if err := restSvc.Stop(context.Background()); err != nil {
+	if err := storage.Close(); err != nil {
+		logger.Errorf("Error stopping levelDB storage: %s", err)
+	}
+
+	if err = restSvc.Stop(context.Background()); err != nil {
 		logger.Errorf("Error stopping REST service: %s", err)
 	}
 }
